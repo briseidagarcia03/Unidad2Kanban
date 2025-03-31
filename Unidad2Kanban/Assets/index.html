@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tablero Kanban</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        .kanban-column {
+            width: 30%;
+            float: left;
+            margin: 10px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+        }
+
+            .kanban-column h2 {
+                text-align: center;
+            }
+
+        .tarea {
+            background: #e0e0e0;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        #nuevo {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Tablero Kanban Compartido</h1>
+    <div id="nuevo" style="text-align: center;">
+        <input type="text" id="titulo" placeholder="Título de la tarea" required>
+        <input type="text" id="descripcion" placeholder="Descripción de la tarea" required>
+        <button onclick="agregarTarea()">Agregar Tarea</button>
+    </div>
+    <div class="clearfix">
+        <div class="kanban-column" id="pendiente">
+            <h2>Pendiente</h2>
+        </div>
+        <div class="kanban-column" id="enProceso">
+            <h2>En Proceso</h2>
+        </div>
+        <div class="kanban-column" id="terminado">
+            <h2>Terminado</h2>
+        </div>
+    </div>
+
+    <script>
+        async function refrescarTablero() {
+            try {
+                const response = await fetch('/kanban/tablero');
+                const tablero = await response.json();
+
+                document.getElementById('pendiente').innerHTML = "<h2>Pendiente</h2>";
+                document.getElementById('enProceso').innerHTML = "<h2>En Proceso</h2>";
+                document.getElementById('terminado').innerHTML = "<h2>Terminado</h2>";
+                tablero.Tareas.forEach(tarea => {
+                    const div = document.createElement('div');
+                    div.className = 'tarea';
+                    div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
+                    div.onclick = () => moverTarea(tarea.Id);
+                    if(tarea.Estado === "Pendiente")
+                        document.getElementById('pendiente').appendChild(div);
+                    else if(tarea.Estado === "EnProceso")
+                        document.getElementById('enProceso').appendChild(div);
+                    else if(tarea.Estado === "Terminado")
+                        document.getElementById('terminado').appendChild(div);
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        async function agregarTarea() {
+            const titulo = document.getElementById('titulo').value;
+            const descripcion = document.getElementById('descripcion').value;
+            if(titulo && descripcion) {
+                const tarea = { Titulo: titulo, Descripcion: descripcion };
+                try {
+                    let response = await fetch('/kanban/agregar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tarea)
+                    });
+                    if(response.ok) {
+                        document.getElementById('titulo').value = "";
+                        document.getElementById('descripcion').value = "";
+                        refrescarTablero();
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        }
+
+        async function moverTarea(id) {
+            const nuevoEstado = prompt("Ingrese el nuevo estado: Pendiente, EnProceso o Terminado");
+            if(nuevoEstado === "Pendiente" || nuevoEstado === "EnProceso" || nuevoEstado === "Terminado") {
+                try {
+                    let response = await fetch('/kanban/mover', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id.toString(), estado: nuevoEstado })
+                    });
+                    if(response.ok) {
+                        refrescarTablero();
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            } else {
+                alert("Estado inválido");
+            }
+        }
+
+        refrescarTablero();
+    </script>
+</body>
+</html>
