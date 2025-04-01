@@ -31,7 +31,7 @@ namespace Unidad2Kanban.Services
             hilo.Start();
         }
 
-        private void Escuchar()
+        void Escuchar()
         {
             var contexto = server.GetContext();
             new Thread(Escuchar) { IsBackground = true }.Start();

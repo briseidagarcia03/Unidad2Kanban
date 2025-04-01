@@ -1,7 +1,5 @@
-﻿<!DOCTYPE html>
-<html lang="es">
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
     <title>Tablero Kanban</title>
     <style>
         body {
@@ -74,11 +72,11 @@
                     div.className = 'tarea';
                     div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
                     div.onclick = () => moverTarea(tarea.Id);
-                    if(tarea.Estado === "Pendiente")
+                    if (tarea.Estado === "Pendiente")
                         document.getElementById('pendiente').appendChild(div);
-                    else if(tarea.Estado === "EnProceso")
+                    else if (tarea.Estado === "EnProceso")
                         document.getElementById('enProceso').appendChild(div);
-                    else if(tarea.Estado === "Terminado")
+                    else if (tarea.Estado === "Terminado")
                         document.getElementById('terminado').appendChild(div);
                 });
             } catch (error) {
@@ -88,7 +86,7 @@
         async function agregarTarea() {
             const titulo = document.getElementById('titulo').value;
             const descripcion = document.getElementById('descripcion').value;
-            if(titulo && descripcion) {
+            if (titulo && descripcion) {
                 const tarea = { Titulo: titulo, Descripcion: descripcion };
                 try {
                     let response = await fetch('/kanban/agregar', {
@@ -96,7 +94,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(tarea)
                     });
-                    if(response.ok) {
+                    if (response.ok) {
                         document.getElementById('titulo').value = "";
                         document.getElementById('descripcion').value = "";
                         refrescarTablero();
@@ -109,14 +107,14 @@
 
         async function moverTarea(id) {
             const nuevoEstado = prompt("Ingrese el nuevo estado: Pendiente, EnProceso o Terminado");
-            if(nuevoEstado === "Pendiente" || nuevoEstado === "EnProceso" || nuevoEstado === "Terminado") {
+            if (nuevoEstado === "Pendiente" || nuevoEstado === "EnProceso" || nuevoEstado === "Terminado") {
                 try {
                     let response = await fetch('/kanban/mover', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: id.toString(), estado: nuevoEstado })
                     });
-                    if(response.ok) {
+                    if (response.ok) {
                         refrescarTablero();
                     }
                 } catch (error) {
