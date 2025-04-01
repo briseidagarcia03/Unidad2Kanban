@@ -21,7 +21,7 @@ namespace Unidad2Kanban.Services
 
         public void Iniciar()
         {
-            server.Prefixes.Add("http://*:35000/kanban/");
+            server.Prefixes.Add("http://*:20000/kanban/");
             server.Start();
 
             Thread hilo = new Thread(Escuchar)
