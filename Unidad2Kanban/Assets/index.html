@@ -44,7 +44,7 @@
     <div id="nuevo" style="text-align: center;">
         <input type="text" id="titulo" placeholder="Título de la tarea" required>
         <input type="text" id="descripcion" placeholder="Descripción de la tarea" required>
-        <button onclick="agregarTarea()">Agregar Tarea</button>
+        <button id="btnAgregar">Agregar Tarea</button>
     </div>
     <div class="clearfix">
         <div class="kanban-column" id="pendiente">
@@ -61,13 +61,14 @@
     <script>
         async function refrescarTablero() {
             try {
-                const response = await fetch('/kanban/tablero');
+                const response = await fetch("/kanban/tablero");
                 const tablero = await response.json();
 
+               
                 document.getElementById('pendiente').innerHTML = "<h2>Pendiente</h2>";
                 document.getElementById('enProceso').innerHTML = "<h2>En Proceso</h2>";
                 document.getElementById('terminado').innerHTML = "<h2>Terminado</h2>";
-                tablero.Tareas.forEach(tarea => {
+                (tablero.Tareas || []).forEach(tarea => {
                     const div = document.createElement('div');
                     div.className = 'tarea';
                     div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
@@ -83,16 +84,17 @@
                 console.error(error);
             }
         }
-        async function agregarTarea() {
+        document.getElementById("btnAgregar").addEventListener("click", async function () { 
             const titulo = document.getElementById('titulo').value;
             const descripcion = document.getElementById('descripcion').value;
             if (titulo && descripcion) {
                 const tarea = { Titulo: titulo, Descripcion: descripcion };
                 try {
-                    let response = await fetch('/kanban/agregar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(tarea)
+                    let response = await fetch("/kanban/agregar", {
+                        method: "POST",
+                        body: JSON.stringify(tarea),
+                        headers: { "content-Type": "application/json" }
+                       
                     });
                     if (response.ok) {
                         document.getElementById('titulo').value = "";
@@ -103,15 +105,15 @@
                     console.error(error);
                 }
             }
-        }
+        });
 
         async function moverTarea(id) {
             const nuevoEstado = prompt("Ingrese el nuevo estado: Pendiente, EnProceso o Terminado");
             if (nuevoEstado === "Pendiente" || nuevoEstado === "EnProceso" || nuevoEstado === "Terminado") {
                 try {
                     let response = await fetch('/kanban/mover', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: "POST",
+                        headers: { "content-Type": "application/json" },
                         body: JSON.stringify({ id: id.toString(), estado: nuevoEstado })
                     });
                     if (response.ok) {
@@ -124,6 +126,7 @@
                 alert("Estado inválido");
             }
         }
+   
 
         refrescarTablero();
     </script>

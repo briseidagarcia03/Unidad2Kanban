@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Unidad2Kanban.Models;
 
@@ -53,7 +54,13 @@ namespace Unidad2Kanban.Services
                 }
                 else if (contexto.Request.HttpMethod == "GET" && contexto.Request.RawUrl == "/kanban/tablero")
                 {
-                    string json = JsonSerializer.Serialize(_tablero);
+                    var opciones = new JsonSerializerOptions
+                    {
+                        Converters = { new JsonStringEnumConverter() }
+                    };
+
+                    string json = JsonSerializer.Serialize(_tablero, opciones);
+
                     byte[] buffer = Encoding.UTF8.GetBytes(json);
                     contexto.Response.ContentType = "application/json";
                     contexto.Response.ContentLength64 = buffer.Length;
@@ -66,9 +73,13 @@ namespace Unidad2Kanban.Services
                     byte[] bufferEntrada = new byte[contexto.Request.ContentLength64];
                     contexto.Request.InputStream.Read(bufferEntrada, 0, bufferEntrada.Length);
                     string json = Encoding.UTF8.GetString(bufferEntrada);
+
+                    Console.WriteLine("JSON recibido: " + json);
+
                     var tarea = JsonSerializer.Deserialize<Tarea>(json);
                     if (tarea != null)
                     {
+                        tarea.Estado = Estados.Pendiente;
                         _tablero.AgregarTarea(tarea);
                         TableroActualizado?.Invoke();
                     }
