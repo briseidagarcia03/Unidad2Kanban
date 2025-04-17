@@ -77,7 +77,6 @@
                         e.dataTransfer.setData("text/plain", tarea.Id);
                     });
                     div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
-                    div.onclick = () => moverTarea(tarea.Id);
                     if (tarea.Estado === "Pendiente")
                         document.getElementById('pendiente').appendChild(div);
                     else if (tarea.Estado === "EnProceso")
