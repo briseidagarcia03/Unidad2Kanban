@@ -71,6 +71,11 @@
                 (tablero.Tareas || []).forEach(tarea => {
                     const div = document.createElement('div');
                     div.className = 'tarea';
+                    div.draggable = true;
+                    div.dataset.id = tarea.Id;
+                    div.addEventListener("dragstart", e => {
+                        e.dataTransfer.setData("text/plain", tarea.Id);
+                    });
                     div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
                     div.onclick = () => moverTarea(tarea.Id);
                     if (tarea.Estado === "Pendiente")
@@ -84,6 +89,33 @@
                 console.error(error);
             }
         }
+
+        //esto es para lo de arrastralo, debería funcionar
+        //ayuda u.u
+        ["pendiente", "enProceso", "terminado"].forEach(id => {
+            const col = document.getElementById(id);
+            col.addEventListener("dragover", e => e.preventDefault()); 
+            col.addEventListener("drop", async e => {
+                e.preventDefault();
+                const idTarea = e.dataTransfer.getData("text/plain");
+                let nuevoEstado;
+                if (id === "pendiente") nuevoEstado = "Pendiente";
+                else if (id === "enProceso") nuevoEstado = "EnProceso";
+                else if (id === "terminado") nuevoEstado = "Terminado";
+
+                try {
+                    const response = await fetch("/kanban/mover", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: idTarea, estado: nuevoEstado })
+                    });
+                    if (response.ok) refrescarTablero();
+                } catch (error) {
+                    console.error("Error al mover tarea:", error);
+                }
+            });
+        });
+
         document.getElementById("btnAgregar").addEventListener("click", async function () { 
             const titulo = document.getElementById('titulo').value;
             const descripcion = document.getElementById('descripcion').value;
@@ -106,27 +138,6 @@
                 }
             }
         });
-
-        async function moverTarea(id) {
-            const nuevoEstado = prompt("Ingrese el nuevo estado: Pendiente, EnProceso o Terminado");
-            if (nuevoEstado === "Pendiente" || nuevoEstado === "EnProceso" || nuevoEstado === "Terminado") {
-                try {
-                    let response = await fetch('/kanban/mover', {
-                        method: "POST",
-                        headers: { "content-Type": "application/json" },
-                        body: JSON.stringify({ id: id.toString(), estado: nuevoEstado })
-                    });
-                    if (response.ok) {
-                        refrescarTablero();
-                    }
-                } catch (error) {
-                    console.error(error);
-                }
-            } else {
-                alert("Estado inválido");
-            }
-        }
-   
 
         refrescarTablero();
     </script>
