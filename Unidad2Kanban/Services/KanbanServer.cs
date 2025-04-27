@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Unidad2Kanban.Models;
 
@@ -122,8 +123,10 @@ namespace Unidad2Kanban.Services
                     if (tarea != null)
                     {
                         tarea.Estado = Estados.Pendiente;
-                        _tablero.AgregarTarea(tarea);
-                        //checaaaaaaa
+
+                        tarea.Id = _tablero.Tareas.Count > 0 ? _tablero.Tareas.Max(t => t.Id) + 1 : 1;
+                        _tablero.Tareas.Add(tarea);
+                        //checaaaaaaar
                         GuardarTablero();
                         TableroActualizado?.Invoke();
                     }
@@ -140,9 +143,61 @@ namespace Unidad2Kanban.Services
                     {
                         int id = int.Parse(data["id"]);
                         Estados nuevoEstado = Enum.Parse<Estados>(data["estado"]);
-                        _tablero.MoverTarea(id, nuevoEstado);
-                        GuardarTablero();
-                        TableroActualizado?.Invoke();
+                        var tarea = _tablero.Tareas.FirstOrDefault(t => t.Id == id);
+                        if (tarea != null)
+                        {
+                            tarea.Estado = nuevoEstado;
+                            GuardarTablero();
+                            TableroActualizado?.Invoke();
+                        }
+                  
+                    }
+                    contexto.Response.StatusCode = 200;
+                    contexto.Response.Close();
+                }
+                //estoy viendo esto aún
+                else if (contexto.Request.HttpMethod == "POST" && contexto.Request.RawUrl == "/kanban/eliminar")
+                {
+                    byte[] bufferEntrada = new byte[contexto.Request.ContentLength64];
+                    contexto.Request.InputStream.Read(bufferEntrada, 0, bufferEntrada.Length);
+                    string json = Encoding.UTF8.GetString(bufferEntrada);
+                    var data = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    if (data != null && data.ContainsKey("id"))
+                    {
+                        int id = int.Parse(data["id"]);
+                        var tarea = _tablero.Tareas.FirstOrDefault(t => t.Id == id);
+                        if (tarea != null)
+                        {
+                            _tablero.Tareas.Remove(tarea);
+                            GuardarTablero();
+                            TableroActualizado?.Invoke();
+                        }
+                    }
+
+                    contexto.Response.StatusCode = 200;
+                    contexto.Response.Close();
+                }
+                else if (contexto.Request.HttpMethod == "POST" && contexto.Request.RawUrl == "/kanban/editar")
+                {
+                    byte[] bufferEntrada = new byte[contexto.Request.ContentLength64];
+                    contexto.Request.InputStream.Read(bufferEntrada, 0, bufferEntrada.Length);
+                    string json = Encoding.UTF8.GetString(bufferEntrada);
+
+                    var data = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    if (data != null && data.ContainsKey("id") && data.ContainsKey("titulo") && data.ContainsKey("descripcion"))
+                    {
+                        int id = int.Parse(data["id"]);
+                        string titulo = data["titulo"];
+                        string descripcion = data["descripcion"];
+
+                        var tarea = _tablero.Tareas.FirstOrDefault(t => t.Id == id);
+                        if (tarea != null)
+                        {
+                            tarea.Titulo = titulo;
+                            tarea.Descripcion = descripcion;
+                            GuardarTablero();
+                            TableroActualizado?.Invoke();
+                        }
                     }
                     contexto.Response.StatusCode = 200;
                     contexto.Response.Close();

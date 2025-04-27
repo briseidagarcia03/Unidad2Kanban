@@ -37,6 +37,63 @@
         #nuevo {
             margin: 20px;
         }
+/*
+        para el editar y eliminar*/
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+            .close:hover,
+            .close:focus {
+                color: black;
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #45a049;
+            }
     </style>
 </head>
 <body>
@@ -58,13 +115,27 @@
         </div>
     </div>
 
+    <div id="actionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cerrarModal">&times;</span>
+            <h2 id="modalTitulo"></h2>
+            <input type="text" id="accionTitulo" placeholder="Nuevo título" required>
+            <input type="text" id="accionDescripcion" placeholder="Nueva descripción" required>
+            <button id="guardarAccionBtn">Guardar Cambios</button>
+            <button id="confirmarEliminarBtn" class="danger">Eliminar</button>
+            <button id="cancelarAccionBtn">Cancelar</button>
+        </div>
+    </div>
     <script>
+        let tareaIdSeleccionada = null;
+        let tablero = [];
+
         async function refrescarTablero() {
             try {
                 const response = await fetch("/kanban/tablero");
-                const tablero = await response.json();
+                tablero = await response.json();
 
-               
+
                 document.getElementById('pendiente').innerHTML = "<h2>Pendiente</h2>";
                 document.getElementById('enProceso').innerHTML = "<h2>En Proceso</h2>";
                 document.getElementById('terminado').innerHTML = "<h2>Terminado</h2>";
@@ -73,10 +144,14 @@
                     div.className = 'tarea';
                     div.draggable = true;
                     div.dataset.id = tarea.Id;
+                    //es lo de para arrastar las tareas
                     div.addEventListener("dragstart", e => {
                         e.dataTransfer.setData("text/plain", tarea.Id);
                     });
-                    div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}`;
+                    div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}
+                                <br>
+                                <button class="editar"  data-id="${tarea.Id}">Editar</button>
+                                <button class="eliminar" data-id="${tarea.Id}">Eliminar</button>`;
                     if (tarea.Estado === "Pendiente")
                         document.getElementById('pendiente').appendChild(div);
                     else if (tarea.Estado === "EnProceso")
@@ -89,11 +164,81 @@
             }
         }
 
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("editar") || e.target.classList.contains("eliminar")) {
+                const id = e.target.dataset.id;
+                tareaIdSeleccionada = id;
+
+                const tarea = (tablero.Tareas || []).find(t => t.Id == id);
+
+                if (e.target.classList.contains("editar")) {
+                    document.getElementById("modalTitulo").innerText = "Editar Tarea";
+                    document.getElementById("accionTitulo").value = tarea.Titulo;
+                    document.getElementById("accionDescripcion").value = tarea.Descripcion;
+                    document.getElementById("guardarAccionBtn").style.display = "inline-block";
+                    document.getElementById("confirmarEliminarBtn").style.display = "none";
+                }
+                if (e.target.classList.contains("eliminar")) {
+                    document.getElementById("modalTitulo").innerText = "Confirmar Eliminación";
+                    document.getElementById("accionTitulo").value = tarea.Titulo;
+                    document.getElementById("accionDescripcion").value = tarea.Descripcion;
+                    document.getElementById("guardarAccionBtn").style.display = "none";
+                    document.getElementById("confirmarEliminarBtn").style.display = "inline-block";
+                }
+
+                document.getElementById("actionModal").style.display = "block";
+            }
+        });
+
+        document.getElementById("cerrarModal").addEventListener("click", function () {
+            document.getElementById("actionModal").style.display = "none";
+        });
+
+        document.getElementById("guardarAccionBtn").addEventListener("click", async function () {
+            const titulo = document.getElementById("accionTitulo").value;
+            const descripcion = document.getElementById("accionDescripcion").value;
+            if (titulo && descripcion) {
+                try {
+                    let response = await fetch("/kanban/editar", {
+                        method: "POST",
+                        body: JSON.stringify({ id: tareaIdSeleccionada, titulo, descripcion }),
+                        headers: { "content-Type": "application/json" }
+                    });
+                    if (response.ok) {
+                        refrescarTablero();
+                        document.getElementById("actionModal").style.display = "none";
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        });
+
+        document.getElementById("confirmarEliminarBtn").addEventListener("click", async function () {
+            try {
+                let response = await fetch("/kanban/eliminar", {
+                    method: "POST",
+                    body: JSON.stringify({ id: tareaIdSeleccionada }),
+                    headers: { "content-Type": "application/json" }
+                });
+                if (response.ok) {
+                    refrescarTablero();
+                    document.getElementById("actionModal").style.display = "none";
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
+        document.getElementById("cancelarAccionBtn").addEventListener("click", function () {
+            document.getElementById("actionModal").style.display = "none";
+        });
+
+
         //esto es para lo de arrastralo, debería funcionar
         //ayuda u.u
         ["pendiente", "enProceso", "terminado"].forEach(id => {
             const col = document.getElementById(id);
-            col.addEventListener("dragover", e => e.preventDefault()); 
+            col.addEventListener("dragover", e => e.preventDefault());
             col.addEventListener("drop", async e => {
                 e.preventDefault();
                 const idTarea = e.dataTransfer.getData("text/plain");
@@ -115,7 +260,7 @@
             });
         });
 
-        document.getElementById("btnAgregar").addEventListener("click", async function () { 
+        document.getElementById("btnAgregar").addEventListener("click", async function () {
             const titulo = document.getElementById('titulo').value;
             const descripcion = document.getElementById('descripcion').value;
             if (titulo && descripcion) {
@@ -125,7 +270,7 @@
                         method: "POST",
                         body: JSON.stringify(tarea),
                         headers: { "content-Type": "application/json" }
-                       
+
                     });
                     if (response.ok) {
                         document.getElementById('titulo').value = "";
@@ -137,6 +282,7 @@
                 }
             }
         });
+
 
         refrescarTablero();
 
