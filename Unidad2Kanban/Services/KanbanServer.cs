@@ -17,8 +17,50 @@ namespace Unidad2Kanban.Services
 
         public event Action? TableroActualizado;
 
+        //checa esto
+        private readonly string archivoTareas = "tareas.json";
+
         private readonly Tablero _tablero = new();
         byte[]? index;
+
+        public KanbanServer()
+        {
+
+            _tablero = CargarTablero();
+        }
+
+        //checar esto
+        private void GuardarTablero()
+        {
+            var opciones = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Converters = { new JsonStringEnumConverter() }
+            };
+            File.WriteAllText(archivoTareas, JsonSerializer.Serialize(_tablero, opciones));
+        }
+
+        private Tablero CargarTablero()
+        {
+            try
+            {
+                if (File.Exists(archivoTareas))
+                {
+                    var opciones = new JsonSerializerOptions
+                    {
+                        Converters = { new JsonStringEnumConverter() }
+                    };
+                    string json = File.ReadAllText(archivoTareas);
+                    return JsonSerializer.Deserialize<Tablero>(json, opciones) ?? new Tablero();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error al cargar tablero: " + ex.Message);
+            }
+            return new Tablero();
+        }
+        
 
         public void Iniciar()
         {
@@ -81,6 +123,8 @@ namespace Unidad2Kanban.Services
                     {
                         tarea.Estado = Estados.Pendiente;
                         _tablero.AgregarTarea(tarea);
+                        //checaaaaaaa
+                        GuardarTablero();
                         TableroActualizado?.Invoke();
                     }
                     contexto.Response.StatusCode = 200;
@@ -97,6 +141,7 @@ namespace Unidad2Kanban.Services
                         int id = int.Parse(data["id"]);
                         Estados nuevoEstado = Enum.Parse<Estados>(data["estado"]);
                         _tablero.MoverTarea(id, nuevoEstado);
+                        GuardarTablero();
                         TableroActualizado?.Invoke();
                     }
                     contexto.Response.StatusCode = 200;
