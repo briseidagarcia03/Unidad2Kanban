@@ -5,7 +5,47 @@
         body {
             font-family: Arial, sans-serif;
             background: #f4f4f4;
+            margin: 0;
+            padding-top: 90px;
         }
+        .header {
+            background-color: #4CAF50;
+            margin: 0;
+            padding: 14px;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            color: white;
+            margin: 0;
+        }
+
+        .agregarboton {
+            margin-right: 20px;
+            text-align: end;
+        }
+
+        #abrirAgregarModal {
+            font-size: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            color: white;
+            border: 2px solid #2c712e;
+            cursor: pointer;
+        }
+
+            #abrirAgregarModal:hover {
+                background-color: white;
+                color: #4CAF50;
+            }
 
         .kanban-column {
             width: 30%;
@@ -82,6 +122,10 @@
             border-radius: 5px;
         }
 
+        .tarea{
+            cursor: pointer;
+        }
+
         button {
             padding: 10px;
             background-color: #4CAF50;
@@ -89,6 +133,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin:5px;
         }
 
             button:hover {
@@ -97,12 +142,14 @@
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">Tablero Kanban Compartido</h1>
-    <div id="nuevo" style="text-align: center;">
-        <input type="text" id="titulo" placeholder="Título de la tarea" required>
-        <input type="text" id="descripcion" placeholder="Descripción de la tarea" required>
-        <button id="btnAgregar">Agregar Tarea</button>
+    <div class="header">
+        <h1>Kanban Compartido</h1>
     </div>
+    <div class="agregarboton">
+        <button id="abrirAgregarModal">+</button>
+    </div>
+
+
     <div class="clearfix">
         <div class="kanban-column" id="pendiente">
             <h2>Pendiente</h2>
@@ -114,6 +161,18 @@
             <h2>Terminado</h2>
         </div>
     </div>
+
+
+    <div id="agregarModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="cerrarAgregarModal">&times;</span>
+            <h2>Agregar Nueva Tarea</h2>
+            <input type="text" id="nuevoTitulo" placeholder="Título de la tarea" required>
+            <input type="text" id="nuevoDescripcion" placeholder="Descripción de la tarea" required>
+            <button id="btnAgregar">Agregar Tarea</button>
+        </div>
+    </div>
+
 
     <div id="actionModal" class="modal">
         <div class="modal-content">
@@ -149,9 +208,9 @@
                         e.dataTransfer.setData("text/plain", tarea.Id);
                     });
                     div.innerHTML = `<strong>${tarea.Titulo}</strong><br>${tarea.Descripcion}
-                                <br>
-                                <button class="editar"  data-id="${tarea.Id}">Editar</button>
-                                <button class="eliminar" data-id="${tarea.Id}">Eliminar</button>`;
+                                                    <br>
+                                                    <button class="editar"  data-id="${tarea.Id}">Editar</button>
+                                                    <button class="eliminar" data-id="${tarea.Id}">Eliminar</button>`;
                     if (tarea.Estado === "Pendiente")
                         document.getElementById('pendiente').appendChild(div);
                     else if (tarea.Estado === "EnProceso")
@@ -175,6 +234,8 @@
                     document.getElementById("modalTitulo").innerText = "Editar Tarea";
                     document.getElementById("accionTitulo").value = tarea.Titulo;
                     document.getElementById("accionDescripcion").value = tarea.Descripcion;
+                    document.getElementById("accionTitulo").disabled = false;
+                    document.getElementById("accionDescripcion").disabled = false;
                     document.getElementById("guardarAccionBtn").style.display = "inline-block";
                     document.getElementById("confirmarEliminarBtn").style.display = "none";
                 }
@@ -182,6 +243,8 @@
                     document.getElementById("modalTitulo").innerText = "Confirmar Eliminación";
                     document.getElementById("accionTitulo").value = tarea.Titulo;
                     document.getElementById("accionDescripcion").value = tarea.Descripcion;
+                    document.getElementById("accionTitulo").disabled = true;
+                    document.getElementById("accionDescripcion").disabled = true;
                     document.getElementById("guardarAccionBtn").style.display = "none";
                     document.getElementById("confirmarEliminarBtn").style.display = "inline-block";
                 }
@@ -260,9 +323,17 @@
             });
         });
 
+        document.getElementById("abrirAgregarModal").addEventListener("click", function () {
+            document.getElementById("agregarModal").style.display = "block";
+        });
+        document.getElementById("cerrarAgregarModal").addEventListener("click", function () {
+            document.getElementById("agregarModal").style.display = "none";
+        });
+
+
         document.getElementById("btnAgregar").addEventListener("click", async function () {
-            const titulo = document.getElementById('titulo').value;
-            const descripcion = document.getElementById('descripcion').value;
+            const titulo = document.getElementById('nuevoTitulo').value;
+            const descripcion = document.getElementById('nuevoDescripcion').value;
             if (titulo && descripcion) {
                 const tarea = { Titulo: titulo, Descripcion: descripcion };
                 try {
@@ -270,11 +341,11 @@
                         method: "POST",
                         body: JSON.stringify(tarea),
                         headers: { "content-Type": "application/json" }
-
                     });
                     if (response.ok) {
-                        document.getElementById('titulo').value = "";
-                        document.getElementById('descripcion').value = "";
+                        document.getElementById('nuevoTitulo').value = "";
+                        document.getElementById('nuevoDescripcion').value = "";
+                        document.getElementById('agregarModal').style.display = "none"; // cerrar modal después de agregar
                         refrescarTablero();
                     }
                 } catch (error) {
@@ -282,7 +353,6 @@
                 }
             }
         });
-
 
         refrescarTablero();
 
